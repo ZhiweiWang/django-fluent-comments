@@ -1,12 +1,11 @@
-import django
 from django.conf import settings
 from django.core.mail import send_mail
 from django.dispatch import receiver
-from django.template import RequestContext
 from django.template.loader import render_to_string
+from django_comments.managers import CommentManager
 
 from fluent_comments import appsettings
-from .compat import CommentManager, Comment, signals, get_model as get_comments_model
+from django_comments import get_model as get_comments_model, signals
 
 try:
     from django.contrib.contenttypes.fields import GenericRelation  # Django 1.9+
@@ -19,6 +18,12 @@ except ImportError:
     from django.contrib.sites.models import get_current_site
 
 
+if appsettings.USE_THREADEDCOMMENTS:
+    from threadedcomments.models import ThreadedComment as BaseModel
+else:
+    from django_comments.models import Comment as BaseModel
+
+
 class FluentCommentManager(CommentManager):
     """
     Manager to optimize SQL queries for comments.
@@ -27,13 +32,8 @@ class FluentCommentManager(CommentManager):
     def get_queryset(self):
         return super(CommentManager, self).get_queryset().select_related('user')
 
-    if django.VERSION >= (1, 7):
-        # This is a workaround to let django-contrib-comments 1.5 work.
-        def get_query_set(self):
-            return self.get_queryset()
 
-
-class FluentComment(Comment):
+class FluentComment(BaseModel):
     """
     Proxy model to make sure that a ``select_related()`` is performed on the ``user`` field.
     """
@@ -41,6 +41,7 @@ class FluentComment(Comment):
 
     class Meta:
         proxy = True
+        managed = False
 
 
 @receiver(signals.comment_was_posted)
@@ -61,17 +62,20 @@ def on_comment_posted(sender, comment, request, **kwargs):
     site = get_current_site(request)
     content_object = comment.content_object
 
-    subject = u'[{0}] New comment posted on "{1}"'.format(site.name, content_object)
+    if comment.is_removed:
+        subject = u'[{0}] Spam comment on "{1}"'.format(site.name, content_object)
+    elif not comment.is_public:
+        subject = u'[{0}] Moderated comment on "{1}"'.format(site.name, content_object)
+    else:
+        subject = u'[{0}] New comment posted on "{1}"'.format(site.name, content_object)
+
     context = {
         'site': site,
         'comment': comment,
         'content_object': content_object
     }
 
-    if django.VERSION >= (1, 8):
-        message = render_to_string("comments/comment_notification_email.txt", context, request=request)
-    else:
-        message = render_to_string("comments/comment_notification_email.txt", context, context_instance=RequestContext(request))
+    message = render_to_string("comments/comment_notification_email.txt", context, request=request)
     send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_list, fail_silently=True)
 
 
@@ -105,16 +109,3 @@ class CommentsRelation(GenericRelation):
             object_id_field='object_pk',
             **kwargs
         )
-
-
-try:
-    from south.modelsinspector import add_ignored_fields
-except ImportError:
-    pass
-else:
-    # South 0.7.x ignores GenericRelation fields but doesn't ignore subclasses.
-    # Taking the same fix as applied in http://south.aeracode.org/ticket/414
-    _name_re = "^" + __name__.replace(".", "\.")
-    add_ignored_fields((
-        _name_re + "\.CommentsRelation",
-    ))

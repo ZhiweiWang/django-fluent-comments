@@ -1,12 +1,12 @@
-import sys
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.admin.widgets import AdminTextInputWidget
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.encoding import force_text
 from django.utils.html import escape
 from django.utils.translation import ugettext_lazy as _
 from fluent_comments import appsettings
-from .compat import get_model as get_comments_model, BASE_APP
+from django_comments import get_model as get_comments_model
 
 
 # Ensure the admin app is loaded,
@@ -18,16 +18,7 @@ if appsettings.USE_THREADEDCOMMENTS:
 
     from threadedcomments.admin import ThreadedCommentsAdmin as CommentsAdminBase
 else:
-    # This code is not in the .compat module to avoid admin imports in all other code.
-    # The admin import usually starts a model registration too, hence keep these imports here.
-    if BASE_APP == 'django.contrib.comments':
-        # Django 1.7 and below
-        from django.contrib.comments.admin import CommentsAdmin as CommentsAdminBase
-    elif BASE_APP == 'django_comments':
-        # Django 1.8 and up
-        from django_comments.admin import CommentsAdmin as CommentsAdminBase
-    else:
-        raise NotImplementedError()
+    from django_comments.admin import CommentsAdmin as CommentsAdminBase
 
 
 class FluentCommentsAdmin(CommentsAdminBase):
@@ -71,15 +62,14 @@ class FluentCommentsAdmin(CommentsAdminBase):
         except AttributeError:
             return ''
 
-        if sys.version_info[0] >= 3:
-            title = str(object)
-        else:
-            title = unicode(object)
+        if not object:
+            return ''
 
-        if object:
+        title = force_text(object)
+        if hasattr(object, 'get_absolute_url'):
             return u'<a href="{0}">{1}</a>'.format(escape(object.get_absolute_url()), escape(title))
         else:
-            return u''
+            return title
 
     object_link.short_description = _("Page")
     object_link.allow_tags = True
@@ -88,11 +78,7 @@ class FluentCommentsAdmin(CommentsAdminBase):
         if comment.user_name:
             return comment.user_name
         elif comment.user_id:
-            # Can't do much else here, User model might be custom.
-            if sys.version_info[0] >= 3:
-                return str(comment.user)
-            else:
-                return unicode(comment.user)
+            return force_text(comment.user)
         else:
             return None
 

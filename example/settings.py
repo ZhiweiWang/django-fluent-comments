@@ -1,5 +1,6 @@
 # Django settings for example project.
 from os.path import join, dirname, realpath
+import django
 
 # Add parent path,
 # Allow starting the app without installing the module.
@@ -49,15 +50,16 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'debug': DEBUG,
-            'context_processors': {
+            'context_processors': [
                 'django.contrib.auth.context_processors.auth',
                 'django.template.context_processors.request',
                 'django.template.context_processors.static',
                 'django.contrib.messages.context_processors.messages',
-            }
+            ]
         },
     },
 ]
+
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
@@ -67,6 +69,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
 )
 
+TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
 ROOT_URLCONF = 'urls'
 
@@ -78,7 +81,6 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.admin',
-    'django.contrib.admindocs',
 
     # Site theme
     'frontend',
@@ -89,11 +91,18 @@ INSTALLED_APPS = (
     # Required modules
     'crispy_forms',
     'fluent_comments',
-    'django_comments',  # below theme1 and fluent_comments
-
-    ## Optional, uncomment to enable:
-    #'threadedcomments',
+    'django_comments',
 )
+
+try:
+    import threadedcomments
+except ImportError:
+    pass
+else:
+    print("Using django-threadedcomments, added to INSTALLED_APPS")
+    INSTALLED_APPS += (
+        'threadedcomments',
+    )
 
 LOGGING = {
     'version': 1,

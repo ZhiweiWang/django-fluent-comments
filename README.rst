@@ -26,25 +26,25 @@ installing it should already give a better comment layout.
 Installation
 ============
 
-First install the module and django_comments, preferably in a virtual environment. It can be installed from PyPI::
+First install the module and django_comments, preferably in a virtual environment::
 
     pip install django-fluent-comments
-
-Or the current folder can be installed::
-
-    pip install .
 
 Configuration
 -------------
 
-To use comments, the following settings are required::
+To use comments, the following settings are required:
+
+.. code-block:: python
 
     INSTALLED_APPS += (
-        'fluent_comments',
+        'fluent_comments',  # must be before django_comments
         'crispy_forms',
         'django_comments',
         'django.contrib.sites',
     )
+
+    CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
     COMMENTS_APP = 'fluent_comments'
 
@@ -52,25 +52,31 @@ To use comments, the following settings are required::
    For older Django versions (up till 1.7), you can also use django.contrib.comments_ in the ``INSTALLED_APPS``.
    This packages uses either of those packages, depending on what is installed.
 
-Add the following in ``urls.py``::
+Add the following in ``urls.py``:
+
+.. code-block:: python
 
     urlpatterns += patterns('',
         url(r'^blog/comments/', include('fluent_comments.urls')),
     )
 
-Provide a template that displays the comments for the ``object`` and includes the required static files::
+Provide a template that displays the comments for the ``object`` and includes the required static files:
 
-    {% load comments %}
+.. code-block:: html+django
 
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}fluent_comments/css/ajaxcomments.css" />
-    <script type="text/javascript" src="{{ STATIC_URL }}fluent_comments/js/ajaxcomments.js"></script>
+    {% load comments static %}
+
+    <link rel="stylesheet" type="text/css" href="{% static 'fluent_comments/css/ajaxcomments.css' %}" />
+    <script type="text/javascript" src="{% static 'fluent_comments/js/ajaxcomments.js' %}"></script>
 
     {% render_comment_list for object %}
     {% render_comment_form for object %}
 
-The database can be created afterwards::
+The database can be created afterwards:
 
-    ./manage.py syncdb
+.. code-block:: bash
+
+    ./manage.py migrate
     ./manage.py runserver
 
 Template for non-ajax pages
@@ -79,7 +85,9 @@ Template for non-ajax pages
 The templates which django_comments_ renders use a single base template for all layouts.
 This template is empty by default since it's only serves as a placeholder.
 To complete the configuration of the comments module, create a ``comments/base.html`` file
-that maps the template blocks onto your website base template. For example::
+that maps the template blocks onto your website base template. For example:
+
+.. code-block:: html+django
 
     {% extends "mysite/base.html" %}{% load i18n %}
 
@@ -103,6 +111,98 @@ CSS form layout
 
 Form layouts generally differ across web sites, hence this application doesn't dictate a specific form layout.
 Instead, this application uses django-crispy-forms_ which allows configuration of the form appearance.
+
+The defaults are set to Bootstrap 3 layouts, but can be changed.
+
+Switching form layouts
+~~~~~~~~~~~~~~~~~~~~~~
+
+By choosing a different form class, the form layout can be redefined at once:
+
+The default is:
+
+.. code-block:: python
+
+    FLUENT_COMMENTS_FORM_CLASS = 'fluent_comments.forms.FluentCommentForm'
+
+    FLUENT_COMMENTS_FORM_CSS_CLASS = 'comments-form form-horizontal'
+    FLUENT_COMMENTS_LABEL_CSS_CLASS = 'col-sm-2'
+    FLUENT_COMMENTS_FIELD_CSS_CLASS = 'col-sm-10'
+
+You can replace the labels with placeholders using:
+
+.. code-block:: python
+
+    FLUENT_COMMENTS_FORM_CLASS = 'fluent_comments.forms.CompactLabelsCommentForm'
+
+Or place some fields at a single row:
+
+.. code-block:: python
+
+    FLUENT_COMMENTS_FORM_CLASS = 'fluent_comments.forms.CompactCommentForm'
+
+    # Optional settings for the compact style:
+    FLUENT_COMMENTS_COMPACT_FIELDS = ('name', 'email', 'url')
+    FLUENT_COMMENTS_COMPACT_GRID_SIZE = 12
+    FLUENT_COMMENTS_COMPACT_COLUMN_CSS_CLASS = "col-sm-{size}"
+
+
+Changing the field order
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The default is:
+
+.. code-block:: python
+
+    FLUENT_COMMENTS_FIELD_ORDER = ('name', 'email', 'url', 'comment')
+
+For a more modern look, consider placing the comment first:
+
+.. code-block:: python
+
+    FLUENT_COMMENTS_FIELD_ORDER = ('comment', 'name', 'email', 'url')
+
+
+Hiding form fields
+~~~~~~~~~~~~~~~~~~
+
+Form fields can be hidden using the following settings:
+
+.. code-block:: python
+
+    FLUENT_COMMENTS_EXCLUDE_FIELDS = ('name', 'email', 'url')
+
+When `django-threadedcomments`_ in used, the ``title`` field can also be removed.
+
+
+Using a custom form class
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When the settings above don't provide the layout you need,
+you can define a custom form class entirely:
+
+.. code-block:: python
+
+    from fluent_comments.forms import CompactLabelsCommentForm
+
+
+    class CommentForm(CompactLabelsCommentForm):
+        """
+        The comment form to use
+        """
+
+        def __init__(self, *args, **kwargs):
+            super(CommentForm, self).__init__(*args, **kwargs)
+            self.fields['url'].label = "Website"  # Changed the label
+
+And use that class in the ``FLUENT_COMMENTS_FORM_CLASS`` setting.
+The ``helper`` attribute defines how the layout is constructed by django-crispy-forms_,
+and should be redefined the change the field ordering or appearance.
+
+
+Switching form templates
+~~~~~~~~~~~~~~~~~~~~~~~~
+
 By default, the forms can be rendered with 2 well known CSS frameworks:
 
 * `Bootstrap`_ The default template pack. The popular simple and flexible HTML, CSS, and Javascript for user interfaces from Twitter.
@@ -118,22 +218,12 @@ If your form CSS framework is not supported, you can create a template pack
 for it and submit a pull request to the django-crispy-forms_ authors for inclusion.
 
 
-Hiding form fields
-~~~~~~~~~~~~~~~~~~
-
-Form fields can be hidden using the following settings::
-
-    FLUENT_COMMENTS_EXCLUDE_FIELDS = ('name', 'email', 'url')
-    COMMENTS_APP = 'fluent_comments'
-
-When `django-threadedcomments`_ in used, the ``title`` field can also be removed.
-
-
 Comment moderation
 ------------------
 
-Comment moderation can be enabled for the specific models using::
+Comment moderation can be enabled for the specific models using:
 
+.. code-block:: python
 
     from fluent_comments.moderation import moderate_model
     from myblog.models import BlogPost
@@ -147,36 +237,29 @@ This code can be placed in a ``models.py`` file.
 The provided field names are optional. By providing the field names,
 the comments can be auto-moderated or auto-closed after a number of days since the publication date.
 
-The following settings are available for comment moderation::
+The following settings are available for comment moderation:
+
+.. code-block:: python
 
     AKISMET_API_KEY = "your-api-key"
-    AKISMET_BLOG_URL = "http://example.com"        # Optional, to override auto detection
-    AKISMET_IS_TEST = False                        # Enable to make test runs
+    AKISMET_BLOG_URL = "http://example.com"         # Optional, to override auto detection
+    AKISMET_IS_TEST = False                         # Enable to make test runs
 
-    FLUENT_CONTENTS_USE_AKISMET = True             # Enabled by default when AKISMET_API_KEY is set.
-    FLUENT_COMMENTS_CLOSE_AFTER_DAYS = None        # Auto-close comments after N days
-    FLUENT_COMMENTS_MODERATE_AFTER_DAYS = None     # Auto-moderate comments after N days.
-    FLUENT_COMMENTS_AKISMET_ACTION = 'moderate'    # Set to 'moderate' or 'delete'
+    FLUENT_CONTENTS_USE_AKISMET = True              # Enabled by default when AKISMET_API_KEY is set.
+    FLUENT_COMMENTS_CLOSE_AFTER_DAYS = None         # Auto-close comments after N days
+    FLUENT_COMMENTS_MODERATE_AFTER_DAYS = None      # Auto-moderate comments after N days.
+    FLUENT_COMMENTS_AKISMET_ACTION = 'soft_delete'  # Set to 'moderate', 'soft_delete' or 'delete'
 
 To use Akismet_ moderation, make sure the ``AKISMET_API_KEY`` setting is defined.
-
-Python 3 notes
-~~~~~~~~~~~~~~
-
-The ``akismet`` 0.2 release does not support Python 3.
-Hence, it's only installed for Python 2 environments.
-
-For Python 3 systems, install one of the forks from the Akismet_ library
-to have proper Python 3 support. For example by including the following in your ``requirements.txt``::
-
-    -e git+https://github.com/allieus/python-akismet.git#egg=akismet
 
 
 E-mail notification
 -------------------
 
 By default, the ``MANAGERS`` of a Django site will receive an e-mail notification of new comments.
-This feature can be enabled or disabled using::
+This feature can be enabled or disabled using:
+
+.. code-block:: python
 
     FLUENT_COMMENTS_USE_EMAIL_NOTIFICATION = True
 
@@ -187,7 +270,9 @@ Threaded comments
 -----------------
 
 There is build-in support for django-threadedcomments_ in this module.
-It can be enabled using the following settings::
+It can be enabled using the following settings:
+
+.. code-block:: python
 
     INSTALLED_APPS += (
         'threadedcomments',

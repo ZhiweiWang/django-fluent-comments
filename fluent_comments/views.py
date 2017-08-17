@@ -1,13 +1,18 @@
+import json
+import sys
+
+from django.apps import apps
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.template.loader import render_to_string
 from django.utils.html import escape
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST
-from .compat import get_form as get_comments_form, get_django_model, signals, CommentPostBadRequest
+from django_comments import get_form as get_comments_form, signals
+from django_comments.views.comments import CommentPostBadRequest
+
+from fluent_comments.utils import get_comment_template_name, get_comment_context_data
 from fluent_comments import appsettings
-import json
-import sys
 
 if sys.version_info[0] >= 3:
     long = int
@@ -43,11 +48,11 @@ def post_comment_ajax(request, using=None):
     if ctype is None or object_pk is None:
         return CommentPostBadRequest("Missing content_type or object_pk field.")
     try:
-        model = get_django_model(*ctype.split(".", 1))
+        model = apps.get_model(*ctype.split(".", 1))
         target = model._default_manager.using(using).get(pk=object_pk)
     except ValueError:
         return CommentPostBadRequest("Invalid object_pk value: {0}".format(escape(object_pk)))
-    except TypeError:
+    except (TypeError, LookupError):
         return CommentPostBadRequest("Invalid content_type value: {0}".format(escape(ctype)))
     except AttributeError:
         return CommentPostBadRequest("The given content-type {0} does not resolve to a valid model.".format(escape(ctype)))
@@ -126,14 +131,12 @@ def _ajax_result(request, form, action, comment=None, object_id=None):
     }
 
     if comment is not None:
-        context = {
-            'comment': comment,
-            'action': action,
-            'preview': (action == 'preview'),
-            'USE_THREADEDCOMMENTS': appsettings.USE_THREADEDCOMMENTS,
-        }
-        comment_html = render_to_string('comments/comment.html', context)
+        # Render the comment, like {% render_comment comment %} does
+        context = get_comment_context_data(comment, action)
+        context['request'] = request
+        template_name = get_comment_template_name(comment)
 
+        comment_html = render_to_string(template_name, context, request=request)
         json_return.update({
             'html': comment_html,
             'comment_id': comment.id,

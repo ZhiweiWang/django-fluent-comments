@@ -9,6 +9,11 @@
     var ENABLE_COMMENT_SCROLL = true;
 
 
+    if($ == null) {
+        throw Error("jQuery needs to be loaded before ajaxcomments.js");
+    }
+
+
     $.fn.ready(function()
     {
         var commentform = $('form.js-comments-form');
@@ -160,7 +165,7 @@
 
         var $a = $(this);
         var comment_id = $a.attr('data-comment-id');
-        var $comment = $a.closest('.comment-wrapper');
+        var $comment = $a.closest('.comment-item');
 
         removeThreadedPreview();
         $('.js-comments-form').appendTo($comment);
@@ -391,7 +396,8 @@
 
                 // Twitter bootstrap style
                 $field.after('<span class="js-errors">' + data.errors[field_name] + '</span>');
-                $field.closest('.control-group').addClass('error');
+                $field.closest('.control-group').addClass('error');  // Bootstrap 2
+                $field.closest('.form-group').addClass('has-error'); // Bootstrap 3
             }
         }
     }
@@ -399,7 +405,8 @@
     function removeErrors($form)
     {
         $form.find('.js-errors').remove();
-        $form.find('.control-group.error').removeClass('error');
+        $form.find('.control-group.error').removeClass('error');  // Bootstrap 2
+        $form.find('.form-group.has-error').removeClass('has-error');  // Bootstrap 3
     }
 
     function getCommentsDiv(object_id)

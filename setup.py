@@ -33,11 +33,6 @@ def find_version(*parts):
         return str(version_match.group(1))
     raise RuntimeError("Unable to find version string.")
 
-if sys.version_info[0] >= 3:
-    # Akismet 0.2 does not support Python 3.
-    if 'install' in sys.argv or 'develop' in sys.argv:
-        print("\nwarning: skipped Akismet as dependency because it does not have a Python 3 version.")
-
 
 setup(
     name='django-fluent-comments',
@@ -46,14 +41,17 @@ setup(
 
     install_requires = [
         'django-crispy-forms>=1.1.1',
-        'django-tag-parser>=2.1',
-        'django-contrib-comments>=1.5',
+        'django-tag-parser>=3.1',
+        'django-contrib-comments>=1.8',
+        'python-akismet>=0.3',  # Python 3 port, replaces Python 2-only "akismet" library.
     ],
     requires=[
         'Django (>=1.5)',
     ],
+    tests_require = [
+        'mock',
+    ],
     extras_require = {
-        ':python_version in "2.6,2.7"': ['akismet>=0.2',],
         'threadedcomments': ['django-threadedcomments>=1.0.1'],
     },
     description='A modern, ajax-based appearance for django_comments',
@@ -77,15 +75,18 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Framework :: Django',
-        'Framework :: Django :: 1.4',
-        'Framework :: Django :: 1.5',
         'Framework :: Django :: 1.6',
         'Framework :: Django :: 1.7',
         'Framework :: Django :: 1.8',
+        'Framework :: Django :: 1.9',
+        'Framework :: Django :: 1.10',
+        'Framework :: Django :: 1.11',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
         'Topic :: Software Development :: Libraries :: Application Frameworks',

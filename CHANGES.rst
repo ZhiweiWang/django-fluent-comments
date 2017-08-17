@@ -1,3 +1,52 @@
+Version 1.4.3 (2017-08-16)
+--------------------------
+
+* Fixed the IP-address reported in the email notification,
+  the database records stored the actual correct value.
+* Fixed missing ``request`` variable in templates.
+* Fixed wrapping of the ``ThreadedComment`` model by the ``FluentComment`` proxy model too.
+
+
+Version 1.4.2 (2017-07-08)
+--------------------------
+
+* Fixed Django 1.11 appearance of compact labels; e-mail and URL field didn't receive a placeholder anymore.
+* Fixed HTML position of the hidden ``parent`` field.
+* Enforce python-akismet_ >= 0.3 for Python 3 compatibility.
+
+
+Version 1.4.1 (2017-02-06)
+--------------------------
+
+* Fixed compatibility with django-contrib-comments_ 1.8.
+
+
+Version 1.4 (2017-02-03)
+------------------------
+
+* Added ``fluent_comments.forms.CompactLabelsCommentForm`` style for ``FLUENT_COMMENTS_FORM_CLASS``.
+* Added ``FLUENT_COMMENTS_MODERATE_BAD_WORDS`` setting, to auto moderate on profanity or spammy words.
+* Added ``FLUENT_COMMENTS_AKISMET_ACTION = "soft_delete"`` to auto-remove spammy comments. This is now the new default too.
+* Exposed all form styles through ``fluent_comments.forms`` now.
+* Fixed ``is_superuser`` check in moderation.
+* Fixed ``blog_language`` parameter for Akismet.
+
+
+Version 1.3 (2017-01-02)
+------------------------
+
+* Added Akismet support for Python 3, via python-akismet_.
+* Added field reordering support, via the ``FLUENT_COMMENTS_FIELD_ORDER`` setting.
+* Added form class swapping, through the ``FLUENT_COMMENTS_FORM_CLASS`` setting.
+* Added new compact-form style, enable using::
+
+    FLUENT_COMMENTS_FORM_CLASS = 'fluent_comments.forms.CompactCommentForm'
+    FLUENT_COMMENTS_COMPACT_FIELDS = ('name', 'email', 'url')
+
+* Added template blocks to override ``comments/form.html`` via ``comments/app_name/app_label/form.html``.
+* Added support for ``app_name/app_label`` template overrides to our ``comments/comment.html`` template.
+
+
 Version 1.2.2 (2016-08-29)
 --------------------------
 
@@ -123,6 +172,7 @@ First public release
 * Rudimentary support for django-threadedcomments_
 
 .. _Akismet: https://pypi.python.org/pypi/akismet
+.. _python-akismet: https://pypi.python.org/pypi/python-akismet
 .. _django_comments: https://github.com/django/django-contrib-comments
 .. _django.contrib.comments: https://docs.djangoproject.com/en/1.7/ref/contrib/comments/
 .. _django-crispy-forms: http://django-crispy-forms.readthedocs.org
